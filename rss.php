@@ -16,9 +16,9 @@
  *
  */
 // global variable initialization
+$insidetitle = false;
 $insideitem = false;  // set to true when the parser is inside an item tag
 $tag = "";   // name of tag you are in
-
 $title = "";  // title of item
 $description = "";  // description of item
 $link = "";  // url for item
@@ -52,6 +52,7 @@ function parseRssFile($xml_parser, $fp, $errorurl, $errortitle) {
 
 //  Change this to the URL of your RSS file 
 $rssurl = "http://blog.tempusdictum.com/index.php/feed/";
+$blogtitle = "dummy";
 
 
 // if there is a parse error display the following generic 
@@ -64,13 +65,15 @@ $errorurl = "http://blog.tempusdictum.com/";
  * element. Ignores starting elements until it finds an ITEM element
  */
 function startElement($parser, $name, $attrs) {
-  global $insideitem, $numitems, $tag, $title, $description, $link;
+  global $insidetitle, $insideitem, $numitems, $tag, $title, $description, $link;
   if ($insideitem) {
     $tag = $name;
   } elseif ($name == "ITEM") {
     // we are now inside an item tag so set $insideitem to true and increment $numitems
     $insideitem = true;
     $numitems++;
+  } elseif ($name == "TITLE") {
+    $insidetitle = true;
   }
 }
 
@@ -80,8 +83,9 @@ function startElement($parser, $name, $attrs) {
  * </item> because the parser is no longer inside an item tag
  */
 function endElement($parser, $name) {
-  global $insideitem, $numitems, $tag, $title, $description, $link;
+  global $insidetitle, $insideitem, $numitems, $tag, $title, $description, $link;
   if ($name == "ITEM") { $insideitem = false; }
+  elseif ($name == "TITLE") { $insidetitle = false; }
 }
 
 /*
@@ -90,7 +94,7 @@ function endElement($parser, $name) {
  * with links and descriptions
  */
 function characterData($parser, $data) {
-  global $insideitem, $numitems, $tag, $title, $description, $link;
+  global $blogtitle, $insidetitle, $insideitem, $numitems, $tag, $title, $description, $link;
 
   // if we are inside an item tag build up the arrays of headline information
   if ($insideitem) {
@@ -105,7 +109,7 @@ function characterData($parser, $data) {
       $link[$numitems] .= $data;
       break;
     }
-  }
+  } elseif ($insidetitle) $blogtitle = $data;
 }
 
 
@@ -119,9 +123,8 @@ $fp = fopen("$rssurl","r")
 or die("Error reading RSS data.");
 
 /*
- * do the parsing
- * note that if there is an error it will display the $errortitle set 
- * above with a link or $errorurl
+ * do the parsing note that if there is an error it will display the
+ * $errortitle set above with a link or $errorurl
  */
 parseRssFile($xml_parser, $fp, $errorurl, $errortitle); xml_parser_free($xml_parser);
 
@@ -148,10 +151,11 @@ parseRssFile($xml_parser, $fp, $errorurl, $errortitle); xml_parser_free($xml_par
  * unroll array printing out links to headlines
  */
 
-print("<table height=\"100%\" border=\"1\" bordercolorlight=\"#3a3635\" bordercolordark=\"#000000\">\n");
+print("<table height=\"100%\">\n");
+print("<tr bgcolor=\"#3a3635\" align=\"center\"><td colspan=\"3\"><font color=\"#ccc09b\" size=\"+2\">$blogtitle</font></td></tr>\n");
 $mintitle = min(count($title), 15);
 for ($j=1; $j<=$mintitle; $j++) {
-  print "<tr><td><a href=\"$link[$j]\">$title[$j]</a></td></tr>\n";
+  print "<tr><td>&nbsp;</td><td><a href=\"$link[$j]\">$title[$j]</a></td><td>&nbsp;</td></tr>\n";
 }
 print("</table>\n");
 ?>
